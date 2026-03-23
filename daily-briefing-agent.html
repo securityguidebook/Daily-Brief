@@ -547,6 +547,9 @@
 
     const depthLabel = selectedDepth === 1 ? 'headline only (1 sentence)' : selectedDepth === 3 ? '3–4 sentences per story' : '5–6 sentences, deeper analysis';
 
+    const tldrGlobalOn = document.getElementById('tldr-global-chip').classList.contains('active');
+    const tldrEuOn = document.getElementById('tldr-eu-chip').classList.contains('active');
+
     const loadingPhrases = [
       'Scanning the wires…',
       (tldrGlobalOn || tldrEuOn) ? 'Checking TLDR News…' : 'Filtering the signal from noise…',
@@ -558,9 +561,6 @@
       lIdx = (lIdx + 1) % loadingPhrases.length;
       document.getElementById('loading-sub').textContent = loadingPhrases[lIdx];
     }, 2200);
-
-    const tldrGlobalOn = document.getElementById('tldr-global-chip').classList.contains('active');
-    const tldrEuOn = document.getElementById('tldr-eu-chip').classList.contains('active');
 
     // ── Worker URL ───────────────────────────────────────────────
     // After deploying your Cloudflare Worker, replace this with
