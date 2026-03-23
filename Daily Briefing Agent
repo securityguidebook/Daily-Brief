@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Daily Briefing Agent</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --ink: #1a1714;
+    --paper: #f5f0e8;
+    --cream: #ede8dc;
+    --rule: #c8bfaa;
+    --accent: #b5451b;
+    --accent-light: #f2e0d8;
+    --muted: #7a7267;
+    --serif: 'Playfair Display', Georgia, serif;
+    --sans: 'DM Sans', sans-serif;
+  }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-weight: 300;
+    min-height: 100vh;
+    padding: 0;
+  }
+
+  /* MASTHEAD */
+  .masthead {
+    border-bottom: 2px solid var(--ink);
+    padding: 28px 48px 20px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 16px;
+  }
+
+  .masthead-left { flex: 1; }
+
+  .pub-name {
+    font-family: var(--serif);
+    font-size: 42px;
+    font-weight: 600;
+    letter-spacing: -0.5px;
+    line-height: 1;
+    color: var(--ink);
+  }
+
+  .pub-name em {
+    font-style: italic;
+    color: var(--accent);
+  }
+
+  .pub-meta {
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-top: 6px;
+  }
+
+  .edition-tag {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 13px;
+    color: var(--muted);
+    text-align: right;
+    line-height: 1.5;
+  }
+
+  /* MAIN LAYOUT */
+  .layout {
+    display: grid;
+    grid-template-columns: 300px 1fr;
+    min-height: calc(100vh - 100px);
+  }
+
+  /* SIDEBAR — CONFIG PANEL */
+  .sidebar {
+    border-right: 1px solid var(--rule);
+    padding: 32px 28px;
+    background: var(--cream);
+  }
+
+  .sidebar-title {
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 24px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--rule);
+  }
+
+  .field-group {
+    margin-bottom: 22px;
+  }
+
+  label {
+    display: block;
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 7px;
+  }
+
+  input[type="text"], textarea, select {
+    width: 100%;
+    background: var(--paper);
+    border: 1px solid var(--rule);
+    border-radius: 3px;
+    padding: 9px 12px;
+    font-family: var(--sans);
+    font-size: 13px;
+    font-weight: 400;
+    color: var(--ink);
+    transition: border-color 0.15s;
+    resize: none;
+  }
+
+  input[type="text"]:focus, textarea:focus, select:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+
+  textarea { line-height: 1.6; }
+
+  .chip-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 10px;
+    border: 1px solid var(--rule);
+    border-radius: 2px;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--ink);
+    cursor: pointer;
+    transition: all 0.15s;
+    background: var(--paper);
+    user-select: none;
+  }
+
+  .chip.active {
+    background: var(--ink);
+    color: var(--paper);
+    border-color: var(--ink);
+  }
+
+  .chip:hover:not(.active) { border-color: var(--ink); }
+
+  .depth-row {
+    display: flex;
+    gap: 6px;
+  }
+
+  .depth-btn {
+    flex: 1;
+    padding: 7px 4px;
+    border: 1px solid var(--rule);
+    background: var(--paper);
+    font-family: var(--sans);
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--muted);
+    cursor: pointer;
+    border-radius: 2px;
+    transition: all 0.15s;
+    text-align: center;
+  }
+
+  .depth-btn.active {
+    background: var(--ink);
+    color: var(--paper);
+    border-color: var(--ink);
+  }
+
+  .generate-btn {
+    width: 100%;
+    padding: 14px;
+    background: var(--accent);
+    color: var(--paper);
+    border: none;
+    font-family: var(--serif);
+    font-size: 16px;
+    font-style: italic;
+    cursor: pointer;
+    border-radius: 2px;
+    margin-top: 8px;
+    transition: background 0.2s, transform 0.1s;
+    letter-spacing: 0.01em;
+  }
+
+  .generate-btn:hover { background: #9e3a17; }
+  .generate-btn:active { transform: scale(0.99); }
+  .generate-btn:disabled { background: var(--rule); cursor: not-allowed; }
+
+  /* MAIN AREA */
+  .main {
+    padding: 40px 52px;
+    overflow-y: auto;
+  }
+
+  /* EMPTY STATE */
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    min-height: 400px;
+    text-align: center;
+    gap: 12px;
+    opacity: 0.45;
+  }
+
+  .empty-ornament {
+    font-family: var(--serif);
+    font-size: 64px;
+    font-style: italic;
+    color: var(--rule);
+    line-height: 1;
+  }
+
+  .empty-state p {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 18px;
+    color: var(--muted);
+  }
+
+  .empty-state small {
+    font-size: 12px;
+    color: var(--rule);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  /* LOADING STATE */
+  .loading-state {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    min-height: 400px;
+    gap: 20px;
+    text-align: center;
+  }
+
+  .loading-state.visible { display: flex; }
+  .empty-state.hidden { display: none; }
+
+  .loading-spinner {
+    width: 32px;
+    height: 32px;
+    border: 2px solid var(--rule);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.9s linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .loading-label {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 17px;
+    color: var(--muted);
+  }
+
+  .loading-sub {
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--rule);
+  }
+
+  /* BRIEFING OUTPUT */
+  #briefing-output {
+    display: none;
+    animation: fadeIn 0.4s ease;
+  }
+
+  #briefing-output.visible { display: block; }
+
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+  .briefing-dateline {
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 28px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--rule);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .briefing-content {
+    font-family: var(--sans);
+    font-size: 14.5px;
+    font-weight: 300;
+    line-height: 1.85;
+    color: var(--ink);
+  }
+
+  /* Render markdown-ish output beautifully */
+  .briefing-content h1, .briefing-content h2, .briefing-content h3 {
+    font-family: var(--serif);
+    font-weight: 600;
+    margin: 32px 0 12px;
+    padding-top: 28px;
+    border-top: 1px solid var(--rule);
+    line-height: 1.25;
+  }
+
+  .briefing-content h2 { font-size: 22px; }
+  .briefing-content h3 { font-size: 17px; font-weight: 400; font-style: italic; color: var(--muted); border-top: none; margin-top: 16px; padding-top: 0; }
+
+  .briefing-content p { margin-bottom: 14px; }
+
+  .briefing-content strong {
+    font-weight: 500;
+    color: var(--ink);
+  }
+
+  .briefing-content em { font-style: italic; }
+
+  .briefing-content ul, .briefing-content ol {
+    padding-left: 20px;
+    margin-bottom: 14px;
+  }
+
+  .briefing-content li { margin-bottom: 6px; }
+
+  .briefing-content hr {
+    border: none;
+    border-top: 1px solid var(--rule);
+    margin: 28px 0;
+  }
+
+  .briefing-content blockquote {
+    border-left: 3px solid var(--accent);
+    padding-left: 16px;
+    margin: 16px 0;
+    color: var(--muted);
+    font-style: italic;
+  }
+
+  .regen-bar {
+    margin-top: 48px;
+    padding-top: 20px;
+    border-top: 2px solid var(--ink);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .regen-bar span {
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .regen-btn {
+    padding: 9px 20px;
+    background: transparent;
+    border: 1px solid var(--ink);
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 14px;
+    cursor: pointer;
+    color: var(--ink);
+    border-radius: 2px;
+    transition: all 0.15s;
+  }
+
+  .regen-btn:hover { background: var(--ink); color: var(--paper); }
+
+  .error-box {
+    background: var(--accent-light);
+    border: 1px solid var(--accent);
+    border-radius: 3px;
+    padding: 16px 20px;
+    font-size: 13px;
+    color: var(--accent);
+    margin-top: 24px;
+    display: none;
+  }
+
+  .error-box.visible { display: block; }
+</style>
+</head>
+<body>
+
+<div class="masthead">
+  <div class="masthead-left">
+    <div class="pub-name">The <em>Daily</em> Brief</div>
+    <div class="pub-meta">Your personal intelligence digest &nbsp;·&nbsp; Powered by Claude</div>
+  </div>
+  <div class="edition-tag" id="edition-tag">
+    Configure your topics<br>and generate today's edition
+  </div>
+</div>
+
+<div class="layout">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-title">Configure your edition</div>
+
+    <div class="field-group">
+      <label>Topics to cover</label>
+      <div class="chip-group" id="topic-chips">
+        <span class="chip active" data-topic="Cybersecurity">🔐 Cybersecurity</span>
+        <span class="chip active" data-topic="AI & Machine Learning">🤖 AI & ML</span>
+        <span class="chip" data-topic="Geopolitics">🌍 Geopolitics</span>
+        <span class="chip" data-topic="Technology industry">💻 Tech industry</span>
+        <span class="chip" data-topic="Science & research">🔬 Science</span>
+        <span class="chip" data-topic="Business & markets">📈 Markets</span>
+        <span class="chip" data-topic="New Zealand news">🥝 NZ news</span>
+        <span class="chip" data-topic="Australia news">🦘 AU news</span>
+      </div>
+    </div>
+
+    <div class="field-group">
+      <label>Additional topics or keywords</label>
+      <input type="text" id="custom-topics" placeholder="e.g. SIEM, threat intelligence…">
+    </div>
+
+    <div class="field-group">
+      <label>Exclude</label>
+      <input type="text" id="excludes" placeholder="e.g. celebrity news, crypto…">
+    </div>
+
+    <div class="field-group">
+      <label>Depth per topic</label>
+      <div class="depth-row">
+        <button class="depth-btn" data-depth="1">Headline</button>
+        <button class="depth-btn active" data-depth="3">Standard</button>
+        <button class="depth-btn" data-depth="5">Deep dive</button>
+      </div>
+    </div>
+
+    <div class="field-group">
+      <label>News sources</label>
+      <div class="chip-group">
+        <span class="chip active" id="tldr-global-chip" data-source="tldr-global" onclick="this.classList.toggle('active')">📺 TLDR Global</span>
+        <span class="chip active" id="tldr-eu-chip" data-source="tldr-eu" onclick="this.classList.toggle('active')">🇪🇺 TLDR EU</span>
+      </div>
+      <div style="margin-top:8px; font-size:11px; color:var(--muted); line-height:1.5;">
+        Claude will search for their latest video topics &amp; coverage and weave it into your briefing automatically.
+      </div>
+    </div>
+
+    <div class="field-group">
+      <label>Your context (optional)</label>
+      <textarea id="user-context" rows="3" placeholder="e.g. I'm a cybersecurity analyst targeting Australian SOC roles…"></textarea>
+    </div>
+
+    <button class="generate-btn" id="generate-btn" onclick="generateBriefing()">
+      Generate today's edition →
+    </button>
+
+    <div class="error-box" id="error-box"></div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+    <div class="empty-state" id="empty-state">
+      <div class="empty-ornament">❧</div>
+      <p>Your briefing awaits.</p>
+      <small>Select topics and press generate</small>
+    </div>
+
+    <div class="loading-state" id="loading-state">
+      <div class="loading-spinner"></div>
+      <div class="loading-label">Searching the wires…</div>
+      <div class="loading-sub" id="loading-sub">Gathering today's intelligence</div>
+    </div>
+
+    <div id="briefing-output">
+      <div class="briefing-dateline">
+        <span id="briefing-date"></span>
+        <span id="briefing-topics-label"></span>
+      </div>
+      <div class="briefing-content" id="briefing-content"></div>
+      <div class="regen-bar">
+        <span>End of edition</span>
+        <button class="regen-btn" onclick="generateBriefing()">Regenerate</button>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+  // --- CHIP TOGGLES ---
+  document.querySelectorAll('.chip').forEach(c => {
+    c.addEventListener('click', () => c.classList.toggle('active'));
+  });
+
+  // --- DEPTH BUTTONS ---
+  let selectedDepth = 3;
+  document.querySelectorAll('.depth-btn').forEach(b => {
+    b.addEventListener('click', () => {
+      document.querySelectorAll('.depth-btn').forEach(x => x.classList.remove('active'));
+      b.classList.add('active');
+      selectedDepth = parseInt(b.dataset.depth);
+    });
+  });
+
+  // --- GENERATE ---
+  async function generateBriefing() {
+    const activeTopics = [...document.querySelectorAll('.chip.active')].map(c => c.dataset.topic);
+    const customTopics = document.getElementById('custom-topics').value.trim();
+    const excludes = document.getElementById('excludes').value.trim();
+    const userContext = document.getElementById('user-context').value.trim();
+
+    const allTopics = [...activeTopics];
+    if (customTopics) allTopics.push(...customTopics.split(',').map(t => t.trim()).filter(Boolean));
+
+    if (allTopics.length === 0) {
+      showError('Please select at least one topic.');
+      return;
+    }
+
+    hideError();
+    setLoading(true);
+
+    const today = new Date().toLocaleDateString('en-GB', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+
+    document.getElementById('edition-tag').innerHTML = `Edition for ${today}`;
+
+    const depthLabel = selectedDepth === 1 ? 'headline only (1 sentence)' : selectedDepth === 3 ? '3–4 sentences per story' : '5–6 sentences, deeper analysis';
+
+    const loadingPhrases = [
+      'Scanning the wires…',
+      (tldrGlobalOn || tldrEuOn) ? 'Checking TLDR News…' : 'Filtering the signal from noise…',
+      'Distilling today\'s intelligence…',
+      'Almost ready…'
+    ];
+    let lIdx = 0;
+    const loadingInterval = setInterval(() => {
+      lIdx = (lIdx + 1) % loadingPhrases.length;
+      document.getElementById('loading-sub').textContent = loadingPhrases[lIdx];
+    }, 2200);
+
+    const tldrGlobalOn = document.getElementById('tldr-global-chip').classList.contains('active');
+    const tldrEuOn = document.getElementById('tldr-eu-chip').classList.contains('active');
+
+    // ── Worker URL ───────────────────────────────────────────────
+    // After deploying your Cloudflare Worker, replace this with
+    // your Worker URL, e.g. https://daily-brief-worker.YOUR_NAME.workers.dev
+    const WORKER_URL = 'https://daily-brief-worker.YOUR_NAME.workers.dev';
+
+    try {
+      const response = await fetch(`${WORKER_URL}/generate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          topics: allTopics,
+          depth: selectedDepth,
+          excludes,
+          userContext,
+          tldrGlobal: tldrGlobalOn,
+          tldrEu: tldrEuOn,
+        })
+      });
+
+      clearInterval(loadingInterval);
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.error?.message || `Worker error ${response.status}`);
+      }
+
+      const data = await response.json();
+      const fullText = data.markdown || '';
+
+      document.getElementById('briefing-date').textContent = today.toUpperCase();
+      document.getElementById('briefing-topics-label').textContent = allTopics.join(' · ');
+      document.getElementById('briefing-content').innerHTML = markdownToHtml(fullText);
+
+      setLoading(false);
+      document.getElementById('briefing-output').classList.add('visible');
+
+    } catch (err) {
+      clearInterval(loadingInterval);
+      setLoading(false);
+      showError('Could not generate briefing: ' + err.message);
+    }
+  }
+
+  // --- MARKDOWN → HTML (simple) ---
+  function markdownToHtml(md) {
+    return md
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+      .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+      .replace(/^# (.+)$/gm, '<h1>$1</h1>')
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*(.+?)\*/g, '<em>$1</em>')
+      .replace(/^---$/gm, '<hr>')
+      .replace(/^- (.+)$/gm, '<li>$1</li>')
+      .replace(/(<li>.*<\/li>\n?)+/g, m => `<ul>${m}</ul>`)
+      .replace(/\n\n+/g, '</p><p>')
+      .replace(/^(?!<[hup]|<hr|<li|<ul|<ol)(.+)$/gm, '$1')
+      .replace(/^(.+)$/gm, (line) => {
+        if (line.startsWith('<')) return line;
+        return line;
+      })
+      .split('\n\n').map(block => {
+        if (block.startsWith('<')) return block;
+        return block ? `<p>${block}</p>` : '';
+      }).join('\n');
+  }
+
+  function setLoading(on) {
+    const btn = document.getElementById('generate-btn');
+    btn.disabled = on;
+    btn.textContent = on ? 'Generating…' : 'Generate today\'s edition →';
+    document.getElementById('loading-state').classList.toggle('visible', on);
+    document.getElementById('empty-state').classList.toggle('hidden', on || document.getElementById('briefing-output').classList.contains('visible'));
+    if (!on) document.getElementById('loading-sub').textContent = 'Gathering today\'s intelligence';
+  }
+
+  function showError(msg) {
+    const box = document.getElementById('error-box');
+    box.textContent = msg;
+    box.classList.add('visible');
+  }
+
+  function hideError() {
+    document.getElementById('error-box').classList.remove('visible');
+  }
+</script>
+</body>
+</html>
